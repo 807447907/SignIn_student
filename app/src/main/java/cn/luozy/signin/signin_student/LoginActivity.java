@@ -88,7 +88,7 @@ public class LoginActivity extends AppCompatActivity {
                         if (jsonObject.getInt("status") == 0) {
                             showTip(jsonObject.getString("msg"));
                             student_token = jsonObject.getString("student_token");
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                            Intent intent = new Intent(LoginActivity.this, SpeakerRegisterActivity.class);
                             intent.putExtra("student_id", student_id);
                             intent.putExtra("student_token", student_token);
                             startActivity(intent);
