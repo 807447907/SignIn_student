@@ -67,9 +67,7 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new MyAdapter(this);
         ListView listViewSignIn = (ListView) findViewById(R.id.listViewSignIn);
         listViewSignIn.setAdapter(mAdapter);
-
-//        bluetoothList.add("20:82:C0:D0:89:CA");
-//        startRefreshSignInList();
+        
         startSearchBluetooth();
     }
 
@@ -141,13 +139,29 @@ public class MainActivity extends AppCompatActivity {
                     ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
                     try {
                         JSONTokener jsonTokener = new JSONTokener(resp);
-                        JSONArray data = (JSONArray) jsonTokener.nextValue();
+                        JSONObject jsonObject = (JSONObject) jsonTokener.nextValue();
+                        if (jsonObject.getInt("status") != 0) {
+                            JSONObject errors = jsonObject.getJSONObject("errors");
+                            String errorMsg = null;
+                            if (errors.has("student_id")) {
+                                errorMsg = errors.getJSONArray("student_id").getString(0);
+                            } else if (errors.has("student_token")) {
+                                errorMsg = errors.getJSONArray("student_token").getString(0);
+                            }
+                            showTip(errorMsg);
+                            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                            startActivity(intent);
+                            finish();
+                            return;
+                        }
 
+                        JSONArray data = jsonObject.getJSONArray("data");
                         for (int i = 0; i < data.length(); i++) {
                             JSONObject item = data.getJSONObject(i);
                             HashMap<String, Object> params = new HashMap<>();
                             params.put("signIn_id", item.getInt("signIn_id"));
                             params.put("signIn_name", item.getString("signIn_name"));
+                            params.put("signIned", item.getBoolean("signIned"));
                             tempList.add(params);
                         }
 
@@ -190,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                    startRefreshSignInList();
                     break;
                 default:
                     break;
@@ -204,10 +219,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Map<String, String> params = new HashMap<>();
-        params.put("bluetooth_list", jsonArray.toString());////////////////////////////
-
-        System.out.println(jsonArray.toString());
-
+        params.put("student_id", student_id);
+        params.put("student_token", student_token);
+        params.put("bluetooth_list", jsonArray.toString());
         String resp = postRequest(searchURL, params);
 
         if (!resp.isEmpty()) {
@@ -222,9 +236,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void attemptSignIn(final Integer signIn_id) {
         Map<String, String> params = new HashMap<>();
-        params.put("signIn_id", signIn_id.toString());
         params.put("student_id", student_id);
         params.put("student_token", student_token);
+        params.put("signIn_id", signIn_id.toString());
 
         String resp = postRequest(signInURL, params);
         if (!resp.isEmpty()) {
@@ -301,12 +315,12 @@ public class MainActivity extends AppCompatActivity {
             return signInList.size();
         }
 
-        @Override///////////////
+        @Override
         public Object getItem(int position) {
             return null;
         }
 
-        @Override//////////////////
+        @Override
         public long getItemId(int position) {
             return 0;
         }
@@ -321,23 +335,29 @@ public class MainActivity extends AppCompatActivity {
 
             final Integer signIn_id = (Integer) signInList.get(position).get("signIn_id");
             final String signIn_name = signInList.get(position).get("signIn_name").toString();
+            final boolean signIned = (boolean) signInList.get(position).get("signIned");
+
 
             textViewTitle.setText(signIn_name);
 
-            buttonSignIn.setText("立即签到");
-            buttonSignIn.setEnabled(true);
-            buttonSignIn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    buttonSignIn.setEnabled(false);
-                    buttonSignIn.setText("已签到");
-                    new Thread() {
-                        public void run() {
-                            attemptSignIn(signIn_id);
-                        }
-                    }.start();
-                }
-            });
+            if (signIned) {
+                buttonSignIn.setText("已签到");
+                buttonSignIn.setEnabled(false);
+            } else {
+                buttonSignIn.setText("立即签到");
+                buttonSignIn.setEnabled(true);
+                buttonSignIn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        new Thread() {
+                            public void run() {
+                                attemptSignIn(signIn_id);
+                            }
+                        }.start();
+                    }
+                });
+            }
+
 
             return myView;
         }
