@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new MyAdapter(this);
         ListView listViewSignIn = (ListView) findViewById(R.id.listViewSignIn);
         listViewSignIn.setAdapter(mAdapter);
-        
+
         startSearchBluetooth();
     }
 
